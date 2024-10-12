@@ -10,8 +10,10 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
+const recentlyViewedRoutes = require('./routes/recentlyViewedRoutes');
 
-// Initialize Express app
+//initialise the app
 const app = express();
 
 // Middlewares
@@ -27,6 +29,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', authMiddleware, cartRoutes);
 app.use('/api/orders', authMiddleware, orderRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/recentlyViewed', recentlyViewedRoutes);
+
 
 // Admin-only routes (e.g., for CRUD operations on products)
 app.use('/api/admin/products', authMiddleware, adminMiddleware, productRoutes);
