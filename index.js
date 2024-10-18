@@ -27,7 +27,7 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/cart', authMiddleware, cartRoutes);
+app.use('/api/cart', cartRoutes);
 app.use('/api/orders', authMiddleware, orderRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/recentlyViewed', recentlyViewedRoutes);
