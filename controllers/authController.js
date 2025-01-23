@@ -29,6 +29,57 @@ exports.login = async (req, res) => {
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ token });
 };
+// Activate Coupon for a User
+exports.activateCoupon = async (req, res) => {
+  const { userId, couponId } = req.body;
+
+  try {
+    // Fetch the user and coupon from the database
+    const user = await User.findById(userId);
+    const coupon = await Coupon.findOne({ couponId });
+
+    if (!user || !coupon) {
+      return res.status(404).json({ message: 'User or Coupon not found' });
+    }
+
+    // Check if the coupon is valid
+    if (!coupon.isValid) {
+      return res.status(400).json({ message: 'Coupon is no longer valid' });
+    }
+
+    // Check if the user has already activated a coupon with the same promoIdentifier
+    const isAlreadyActivated = user.coupons.some(
+      (c) => c.promoIdentifier === coupon.promoIdentifier
+    );
+
+    if (isAlreadyActivated) {
+      return res.status(400).json({
+        message: 'A coupon from this promotion is already activated on your account',
+      });
+    }
+
+    // Add the coupon to the user's account
+    user.coupons.push({
+      couponId: coupon.couponId,
+      promoIdentifier: coupon.promoIdentifier,
+      activatedAt: new Date(),
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'Coupon activated successfully',
+      coupon: {
+        couponId: coupon.couponId,
+        promoIdentifier: coupon.promoIdentifier,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Validate Active Coupon
 exports.validateCoupon = async (req, res) => {
   const { userId, couponCode } = req.body;
