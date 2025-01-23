@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Coupon = require('../models/Coupon');
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -26,4 +28,80 @@ exports.login = async (req, res) => {
 
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ token });
+};
+// Validate Active Coupon
+exports.validateCoupon = async (req, res) => {
+  const { userId, couponCode } = req.body;
+
+  try {
+    // Fetch user and coupon details
+    const user = await User.findById(userId);
+    const coupon = await Coupon.findOne({ promoIdentifier: couponCode });
+
+    if (!user || !coupon) {
+      return res.status(404).json({ message: 'User or Coupon not found' });
+    }
+
+    // Check if the coupon is valid and not used by the user
+    const isUsed = user.coupons.some(c => c.promoIdentifier === couponCode);
+    if (!coupon.isValid || isUsed) {
+      return res.status(400).json({
+        message: isUsed
+          ? 'Coupon already used'
+          : 'Coupon is no longer valid',
+      });
+    }
+
+    // Update Coupon Value
+exports.updateCouponValue = async (req, res) => {
+  const { userId, couponCode, usedValue } = req.body;
+
+  try {
+    // Fetch user and coupon details
+    const user = await User.findById(userId);
+    const coupon = await Coupon.findOne({ promoIdentifier: couponCode });
+
+    if (!user || !coupon) {
+      return res.status(404).json({ message: 'User or Coupon not found' });
+    }
+
+    // Ensure the coupon hasn't been used already by the user
+    const isUsed = user.coupons.some(c => c.promoIdentifier === couponCode);
+    if (isUsed) {
+      return res.status(400).json({ message: 'Coupon already used' });
+    }
+
+    // Deduct the used value from the coupon
+    coupon.value -= usedValue;
+
+    // Mark coupon as invalid if exhausted
+    if (coupon.value <= 0) {
+      coupon.isValid = false;
+    }
+
+    // Associate the coupon with the user
+    user.coupons.push({ promoIdentifier: couponCode });
+
+    await coupon.save();
+    await user.save();
+
+    res.status(200).json({
+      message: 'Coupon value updated successfully',
+      remainingValue: coupon.value,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+    res.status(200).json({
+      message: 'Coupon is valid',
+      remainingValue: coupon.value,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
