@@ -31,7 +31,7 @@ exports.login = async (req, res) => {
 };
 // Activate Coupon for a User
 exports.activateCoupon = async (req, res) => {
-  const { userId, couponId } = req.body;
+  const { userId, couponName, couponId } = req.body;
 
   try {
     // Fetch the user and coupon from the database
@@ -60,6 +60,7 @@ exports.activateCoupon = async (req, res) => {
 
     // Add the coupon to the user's account
     user.coupons.push({
+      couponName: coupon.name
       couponId: coupon.couponId,
       promoIdentifier: coupon.promoIdentifier,
       activatedAt: new Date(),
