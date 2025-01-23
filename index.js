@@ -7,6 +7,7 @@ const { adminMiddleware } = require('./middleware/adminMiddleware');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const agentRoutes = require('./routes/agentRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -26,6 +27,7 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/agent', agentRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', authMiddleware, orderRoutes);
