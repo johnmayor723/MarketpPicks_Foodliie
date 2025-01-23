@@ -5,7 +5,7 @@ const CouponSchema = new mongoose.Schema({
   couponId: { type: String, required: true, unique: true }, // Unique identifier
   promoIdentifier: { type: String, required: true },
   agentIdentifier: { type: String, required: true },
-  value: { type: Number, required: true }, // Remaining coupon value
+  value: { type: Number, default: 50000,  required: true }, // Remaining coupon value
   isValid: { type: Boolean, default: true },
   expiryDate: { type: Date, required: true }, // Last day of the month
 });
