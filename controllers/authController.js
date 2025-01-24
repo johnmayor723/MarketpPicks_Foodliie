@@ -1,8 +1,10 @@
 const User = require('../models/User');
 const Coupon = require('../models/Coupon');
+const CouponCode = require('../models/CouponCode')
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid'); // For generating unique IDs
 
 exports.register = async (req, res) => {
   try {
@@ -29,57 +31,77 @@ exports.login = async (req, res) => {
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ token });
 };
+
+
 // Activate Coupon for a User
 exports.activateCoupon = async (req, res) => {
-  const { userId, couponCode, couponId } = req.body;
-
   try {
-    // Fetch the user and coupon from the database
+    // Fetch the authenticated user's ID from the session
+    const userId = req.session.currentuser;
+
+    // Validate if the user ID exists in the session
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { couponCode } = req.body;
+
+    // Fetch the user from the database
     const user = await User.findById(userId);
-    const coupon = await Coupon.findOne({ couponId });
-
-    if (!user || !coupon) {
-      return res.status(404).json({ message: 'User or Coupon not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if the coupon is valid
-    if (!coupon.isValid) {
-      return res.status(400).json({ message: 'Coupon is no longer valid' });
+    // Check if the user already has a valid coupon
+    const existingValidCoupon = await Coupon.findOne({ userId, isValid: true });
+    if (existingValidCoupon) {
+      return res
+        .status(400)
+        .json({ message: 'You already have an active coupon' });
     }
 
-    // Check if the user has already activated a coupon with the same promoIdentifier
-    const isAlreadyActivated = user.coupons.some(
-      (c) => c.promoIdentifier === coupon.promoIdentifier
-    );
-
-    if (isAlreadyActivated) {
-      return res.status(400).json({
-        message: 'A coupon from this promotion is already activated on your account',
-      });
+    // Fetch the coupon code from the CouponCode model
+    const validCouponCode = await CouponCode.findOne({ couponCode });
+    if (!validCouponCode || !validCouponCode.isValid) {
+      return res
+        .status(400)
+        .json({ message: 'Invalid or expired coupon code' });
     }
 
-    // Add the coupon to the user's account
-    user.coupons.push({
-      couponName: coupon.name
-      couponId: coupon.couponId,
-      promoIdentifier: coupon.promoIdentifier,
+    // Generate a unique ID for the activated coupon
+    const couponId = uuidv4();
+
+    // Save the activated coupon in the Coupon model
+    const activatedCoupon = new Coupon({
+      userId: user._id,
+      couponId,
+      couponCode: validCouponCode.couponCode,
+      value: 50000, // Coupon value in Naira
+      isValid: true, // Mark the coupon as valid
       activatedAt: new Date(),
     });
 
-    await user.save();
+    await activatedCoupon.save();
+
+    // Mark the coupon code as used in the CouponCode model
+    //validCouponCode.isValid = false;
+    await validCouponCode.save();
 
     res.status(200).json({
       message: 'Coupon activated successfully',
       coupon: {
-        couponId: coupon.couponId,
-        promoIdentifier: coupon.promoIdentifier,
+        couponId,
+        couponCode: validCouponCode.couponCode,
+        value: 50000,
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error activating coupon:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
 
 // Validate Active Coupon
 exports.validateCoupon = async (req, res) => {
