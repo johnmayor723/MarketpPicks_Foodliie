@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
   wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-  coupons: [{ promoIdentifier: String }], // Array of used coupon promo identifiers
+  coupons: [{ couponId: String }], // Array of used coupon promo identifiers
   recentlyViewed: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 
 });
