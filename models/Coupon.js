@@ -1,11 +1,10 @@
-const mongoose = require('mongoose');
-
-const CouponSchema = new mongoose.Schema({
+const couponSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   couponId: { type: String, required: true, unique: true },
-  couponCode: { type: String, required: true }, // Unique identifier
-  value: { type: Number, default: 50000,  required: true }, // Remaining coupon value
+  couponCode: { type: String, required: true },
+  value: { type: Number, required: true },
   isValid: { type: Boolean, default: true },
-  expiryDate: { type: Date, required: true }, // Last day of the month
+  activatedAt: { type: Date, required: true },
 });
 
-module.exports = mongoose.model('Coupon', CouponSchema);
+module.exports = mongoose.model('Coupon', couponSchema);
