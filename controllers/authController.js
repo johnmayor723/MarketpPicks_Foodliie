@@ -105,77 +105,81 @@ exports.activateCoupon = async (req, res) => {
 
 // Validate Active Coupon
 exports.validateCoupon = async (req, res) => {
-  const { userId, couponCode } = req.body;
-
   try {
-    // Fetch user and coupon details
-    const user = await User.findById(userId);
-    const coupon = await Coupon.findOne({ promoIdentifier: couponCode });
+    // Fetch the authenticated user's ID from the session
+    const userId = req.session.currentuser;
 
-    if (!user || !coupon) {
-      return res.status(404).json({ message: 'User or Coupon not found' });
+    // Validate if the user ID exists in the session
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Check if the coupon is valid and not used by the user
-    const isUsed = user.coupons.some(c => c.promoIdentifier === couponCode);
-    if (!coupon.isValid || isUsed) {
-      return res.status(400).json({
-        message: isUsed
-          ? 'Coupon already used'
-          : 'Coupon is no longer valid',
+    // Check the Coupon model for a valid coupon associated with the user
+    const validCoupon = await Coupon.findOne({ userId, isValid: true });
+
+    if (!validCoupon) {
+      return res.status(404).json({
+        message: 'No active coupon found for this user',
       });
     }
 
-    // Update Coupon Value
+    // Return the details of the valid coupon, including its current/remaining value
+    res.status(200).json({
+      message: 'Valid coupon found',
+      coupon: {
+        couponId: validCoupon.couponId,
+        couponCode: validCoupon.couponCode,
+        value: validCoupon.value, // Assuming `value` represents the remaining value
+        activatedAt: validCoupon.activatedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Error validating coupon:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Update Coupon Value
 exports.updateCouponValue = async (req, res) => {
-  const { userId, couponCode, usedValue } = req.body;
+  const { couponCode, usedValue } = req.body;
 
   try {
-    // Fetch user and coupon details
-    const user = await User.findById(userId);
-    const coupon = await Coupon.findOne({ promoIdentifier: couponCode });
+    // Fetch the authenticated user's ID from the session
+    const userId = req.session.currentuser;
 
-    if (!user || !coupon) {
-      return res.status(404).json({ message: 'User or Coupon not found' });
+    // Validate if the user ID exists in the session
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Ensure the coupon hasn't been used already by the user
-    const isUsed = user.coupons.some(c => c.promoIdentifier === couponCode);
-    if (isUsed) {
-      return res.status(400).json({ message: 'Coupon already used' });
+    // Find an active coupon associated with the user and matching the coupon code
+    const coupon = await Coupon.findOne({ userId, couponCode, isValid: true });
+
+    if (!coupon) {
+      return res.status(404).json({
+        message: 'No valid coupon found for this user',
+      });
     }
 
     // Deduct the used value from the coupon
     coupon.value -= usedValue;
 
-    // Mark coupon as invalid if exhausted
+    // Mark the coupon as invalid if the value is exhausted
     if (coupon.value <= 0) {
       coupon.isValid = false;
+      coupon.value = 0; // Ensure no negative values
     }
 
-    // Associate the coupon with the user
-    user.coupons.push({ promoIdentifier: couponCode });
-
+    // Save the updated coupon
     await coupon.save();
-    await user.save();
 
     res.status(200).json({
       message: 'Coupon value updated successfully',
       remainingValue: coupon.value,
+      isValid: coupon.isValid,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-
-    res.status(200).json({
-      message: 'Coupon is valid',
-      remainingValue: coupon.value,
-    });
-  } catch (error) {
-    console.error(error);
+    console.error('Error updating coupon value:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
