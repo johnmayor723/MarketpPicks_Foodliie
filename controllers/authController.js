@@ -37,7 +37,7 @@ exports.login = async (req, res) => {
 exports.activateCoupon = async (req, res) => {
   try {
     // Fetch the authenticated user's ID from the session
-    const userId = req.session.currentuser;
+    const {userId} = req.body;
 
     // Validate if the user ID exists in the session
     if (!userId) {
@@ -73,7 +73,7 @@ exports.activateCoupon = async (req, res) => {
 
     // Save the activated coupon in the Coupon model
     const activatedCoupon = new Coupon({
-      userId: user._id,
+      userId,
       couponId,
       couponCode: validCouponCode.couponCode,
       value: 50000, // Coupon value in Naira
@@ -107,7 +107,7 @@ exports.activateCoupon = async (req, res) => {
 exports.validateCoupon = async (req, res) => {
   try {
     // Fetch the authenticated user's ID from the session
-    const userId = req.session.currentuser;
+    const {userId} = req.body;
 
     // Validate if the user ID exists in the session
     if (!userId) {
@@ -145,7 +145,7 @@ exports.updateCouponValue = async (req, res) => {
 
   try {
     // Fetch the authenticated user's ID from the session
-    const userId = req.session.currentuser;
+    const {userId} = req.body;
 
     // Validate if the user ID exists in the session
     if (!userId) {
